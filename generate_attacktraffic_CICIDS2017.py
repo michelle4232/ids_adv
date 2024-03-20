@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import pickle
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import MinMaxScaler
+# Ignore warnings
+import warnings
+warnings.filterwarnings('ignore')
 
 
 
@@ -25,16 +29,26 @@ def Preprocess_GAN(test):
     # select the last column
     testLabel = test.columns[-1] 
     test.rename(columns={testLabel: 'Label'}, inplace=True)
-    # min max standardization
-    numeric_columns = list(test.select_dtypes(include=['int', "float"]).columns) # select all columns that are numeric
-    numeric_columns.remove("BwdPSHFlags")
-    for c in numeric_columns:
-        max_ = test[c].max()
-        min_ = test[c].min()
-        if max_ == 0:
-            max = 0.1
-        test[c] = test[c].map(lambda x: (x - min_) / (max_ - min_))
+    # # min max standardization
+    # numeric_columns = list(test.select_dtypes(include=['int', "float"]).columns) # select all columns that are numeric
+    # numeric_columns.remove("BwdPSHFlags")
+    # for c in numeric_columns:
+    #     max_ = test[c].max()
+    #     min_ = test[c].min()
+    #     if max_ == 0:
+    #         max = 0.1
+    #     test[c] = test[c].map(lambda x: (x - min_) / (max_ - min_))
 
+    # 創建一個MinMaxScaler對象
+    scaler = MinMaxScaler()
+
+    # 選擇所有數值型列，並移除"BwdPSHFlags"
+    numeric_columns = list(test.select_dtypes(include=['int', "float"]).columns)
+    numeric_columns.remove("BwdPSHFlags")
+
+    # 對每一個數值型列進行縮放
+    for c in numeric_columns:
+        test[c] = scaler.fit_transform(test[[c]])
 
     #  1: annomaly; 0: normaly
     # train["DT_Predicted"] = train["DT_Predicted"].map(lambda x: 1 if x == "anomaly" else 0)
