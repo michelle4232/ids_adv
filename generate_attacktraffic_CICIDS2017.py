@@ -6,6 +6,7 @@ from torch import nn
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pickle
+from sklearn.metrics import classification_report
 
 
 
@@ -86,7 +87,7 @@ def CreateBatch_GAN(x, batch_size):
 # test_dataset = pd.read_csv("datasets/KDD_dataset/KDDTest+.csv")
 # datasets\target_model\CICIDS2017\target_model_CICIDS2017data.csv
 # test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/data_for_gan/test_dt_predicted.csv")
-test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/data_for_gan/test_xgb_predicted.csv")
+test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/data_for_gan/test_dt_predicted.csv")
 test, test_raw_attack, test_normal, true_label = Preprocess_GAN(test_dataset)
 
 BATCH_SIZE = 256 # Batch size
@@ -102,9 +103,9 @@ learned_g = Generator(D_G_INPUT_DIM,G_OUTPUT_DIM)
 # ids_model = Blackbox_IDS(D_G_INPUT_DIM,2)
 # ids_param= th.load('datasets/KDD_dataset/IDS.pth',map_location=lambda x,y:x)
 # ids_model.load_state_dict(ids_param)
-ids_model = pickle.load(open('surrogate_model/ml_model/lr_model_from_xgbdata.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
+ids_model = pickle.load(open('surrogate_model/ml_model/dt_model_from_dtdata.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
 # ids_model = pickle.load(open('target_model/ml_model/CICIDS2018target_lr.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
-g_param = th.load('GAN_materials/testGAN/generator_lr_model_from_xgbdata_0319_2338.pth',map_location=lambda x,y:x)
+g_param = th.load('GAN_materials/testGAN/gan_model/from_dt_surrogate_model/generator_dt_model_from_dtdata_0319_2338.pth',map_location=lambda x,y:x)
 learned_g.load_state_dict(g_param)
 
 # learned_g = parameters from the trained model
@@ -180,7 +181,7 @@ for NUM in range (NUM_OF_TESTS): #100
                 ids_pred_ori = ids_model.predict(ori_input_df)
                 # print("ids_pred_adv: ", ids_pred_adv)
                 ids_true_label = np.r_[np.ones(BATCH_SIZE),np.zeros(BATCH_SIZE)][l].astype(int)
-                ids_true_label = np.r_[np.ones(BATCH_SIZE),np.zeros(BATCH_SIZE)]
+                # ids_true_label = np.r_[np.ones(BATCH_SIZE),np.zeros(BATCH_SIZE)]
                 # pred_label_adv = th.argmax(nn.Sigmoid()(ids_pred_adv),dim = 1).cpu().numpy()
                 # pred_label_ori = th.argmax(nn.Sigmoid()(ids_pred_ori),dim = 1).cpu().numpy()
                 #print("ids_pred_adv: ", ids_pred_adv)
@@ -204,12 +205,14 @@ for NUM in range (NUM_OF_TESTS): #100
                 # o_dr.append(tp2/(tp2 + fp2))
                 # a_dr.append(tp1/(tp1 + fp1))
                 # eir.append(1 - (tp1/(tp1 + fp1))/(tp2/(tp2 + fp2)))
+               
                 o_dr.append(recall_score(ids_true_label, pred_label_ori))
                 a_dr.append(recall_score(ids_true_label, pred_label_adv))
-                # eir.append(1 - recall_score(ids_true_label, pred_label_adv)/recall_score(ids_true_label, pred_label_ori))
+                eir.append(1 - recall_score(ids_true_label, pred_label_adv)/recall_score(ids_true_label, pred_label_ori))
         avg_odr=np.mean(o_dr)
         avg_adr=np.mean(a_dr)
         avg_eir=np.mean(eir)
+
         print(f"{NUM + 1}: {n} => origin_DR : {avg_odr} \t adversarial_DR : {avg_adr} \t EIR : {avg_eir}") 
         if (n=="learned"):
             odr_tests.append(avg_odr)
