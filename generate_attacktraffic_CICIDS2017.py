@@ -39,16 +39,16 @@ def Preprocess_GAN(test):
     #         max = 0.1
     #     test[c] = test[c].map(lambda x: (x - min_) / (max_ - min_))
 
-    # 創建一個MinMaxScaler對象
-    scaler = MinMaxScaler()
+    # # 創建一個MinMaxScaler對象
+    # scaler = MinMaxScaler()
 
-    # 選擇所有數值型列，並移除"BwdPSHFlags"
-    numeric_columns = list(test.select_dtypes(include=['int', "float"]).columns)
-    numeric_columns.remove("BwdPSHFlags")
+    # # 選擇所有數值型列，並移除"BwdPSHFlags"
+    # numeric_columns = list(test.select_dtypes(include=['int', "float"]).columns)
+    # numeric_columns.remove("BwdPSHFlags")
 
-    # 對每一個數值型列進行縮放
-    for c in numeric_columns:
-        test[c] = scaler.fit_transform(test[[c]])
+    # # 對每一個數值型列進行縮放
+    # for c in numeric_columns:
+    #     test[c] = scaler.fit_transform(test[[c]])
 
     #  1: annomaly; 0: normaly
     # train["DT_Predicted"] = train["DT_Predicted"].map(lambda x: 1 if x == "anomaly" else 0)
@@ -69,11 +69,11 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.layer = nn.Sequential(
             nn.Linear(input_dim, input_dim//2),
-            nn.ReLU(True),
+            nn.LeakyReLU(True),
             nn.Linear(input_dim // 2, input_dim//2),
-            nn.ReLU(True),
+            nn.LeakyReLU(True),
             nn.Linear(input_dim // 2, input_dim//2),
-            nn.ReLU(True),
+            nn.LeakyReLU(True),
             # nn.Linear(input_dim // 2,input_dim//2),
             # nn.ReLU(True),
             nn.Linear(input_dim//2,output_dim),
@@ -100,8 +100,7 @@ def CreateBatch_GAN(x, batch_size):
 
 # test_dataset = pd.read_csv("datasets/KDD_dataset/KDDTest+.csv")
 # datasets\target_model\CICIDS2017\target_model_CICIDS2017data.csv
-# test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/data_for_gan/test_dt_predicted.csv")
-test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/data_for_gan/test_dt_predicted.csv")
+test_dataset = pd.read_csv("datasets/surrogate_model/CICIDS2017/split_dataset/test_CICIDS2017.csv")
 test, test_raw_attack, test_normal, true_label = Preprocess_GAN(test_dataset)
 
 BATCH_SIZE = 256 # Batch size
@@ -117,9 +116,9 @@ learned_g = Generator(D_G_INPUT_DIM,G_OUTPUT_DIM)
 # ids_model = Blackbox_IDS(D_G_INPUT_DIM,2)
 # ids_param= th.load('datasets/KDD_dataset/IDS.pth',map_location=lambda x,y:x)
 # ids_model.load_state_dict(ids_param)
-ids_model = pickle.load(open('surrogate_model/ml_model/dt_model_from_dtdata.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
-# ids_model = pickle.load(open('target_model/ml_model/CICIDS2018target_lr.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
-g_param = th.load('GAN_materials/testGAN/gan_model/from_dt_surrogate_model/generator_dt_model_from_dtdata_0319_2338.pth',map_location=lambda x,y:x)
+ids_model = pickle.load(open('surrogate_model/ml_model/xgb_model_from_dnndata.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
+# ids_model = pickle.load(open('target_model/ml_model/CICIDS2018target_xgb.pickle', 'rb')) #surrogate_model/ml_model/lr_model_from_dtdata.pickle
+g_param = th.load('GAN_materials/testGAN/gan_model/from_xgb_surrogate_model/generator_xgb_model_from_dnndata_0323_1229.pth',map_location=lambda x,y:x)
 learned_g.load_state_dict(g_param)
 
 # learned_g = parameters from the trained model
@@ -219,7 +218,7 @@ for NUM in range (NUM_OF_TESTS): #100
                 # o_dr.append(tp2/(tp2 + fp2))
                 # a_dr.append(tp1/(tp1 + fp1))
                 # eir.append(1 - (tp1/(tp1 + fp1))/(tp2/(tp2 + fp2)))
-               
+
                 o_dr.append(recall_score(ids_true_label, pred_label_ori))
                 a_dr.append(recall_score(ids_true_label, pred_label_adv))
                 eir.append(1 - recall_score(ids_true_label, pred_label_adv)/recall_score(ids_true_label, pred_label_ori))
